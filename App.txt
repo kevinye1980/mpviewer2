@@ -1,0 +1,7 @@
+FILE DELETED
+
+The mail protection system has detected the "FILE FILTER= Standard list: *.ico" filter in the attached "winmail.dat->mpviewer-master.zip->App.ico" file.  The infected message/file has been removed.
+
+Please contact your local support if you need help regarding this notification.
+
+TECHNICAL REFERENCE: File Filter matching  - Transport Scan Job Scan

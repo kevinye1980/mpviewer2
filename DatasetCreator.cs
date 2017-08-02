@@ -885,7 +885,7 @@ namespace MPViewer
             table.Columns.Add("Counter Name", Type.GetType("System.String"));
             table.Columns.Add("Frequency", Type.GetType("System.String"));
             table.Columns.Add("Threshold", Type.GetType("System.String"));
-            table.Columns.Add("Interval", Type.GetType("System.String"));
+            //table.Columns.Add("Interval", Type.GetType("System.String"));
             table.Columns.Add("Number Of Samples", Type.GetType("System.String"));
             table.Columns.Add("Generate Alert", Type.GetType("System.Boolean"));
             table.Columns.Add("Alert Severity", Type.GetType("System.String"));
@@ -913,18 +913,7 @@ namespace MPViewer
                     ManagementPackUnitMonitor unitMonitor = (ManagementPackUnitMonitor)monitor;
 
                     row["MonitorType"] = GetFriendlyMonitorTypeName(unitMonitor.TypeID.Name);
-
-                    string interval;
-                    string threshold;
-                    string numSamples;
-
-                    
-                    ExtractIntervalAndThresholdFromConfig(unitMonitor.Configuration, out interval, out threshold, out numSamples);
-                    row["Interval"] = interval;
-                    row["Threshold"] = threshold;
-                    row["Number Of Samples"] = numSamples;
-
-
+                   
                     if (IsPerformanceUnitMonitor(unitMonitor))
                     {
                         string counterName;
@@ -937,6 +926,16 @@ namespace MPViewer
                         row["Counter Name"] = counterName;
                         row["Frequency"] = frequency;
                     }
+
+                    string interval;
+                    string threshold;
+                    string numSamples;
+
+                    ExtractThresholdForMonitorFromConfig(unitMonitor.Configuration, out interval, out threshold, out numSamples);
+                    row["Frequency"] = interval;
+                    row["Threshold"] = threshold;
+                    row["Number Of Samples"] = numSamples;
+
 
                     table.Rows.Add(row);
                 }
@@ -1000,6 +999,10 @@ namespace MPViewer
             table.Columns.Add("Object Name", Type.GetType("System.String"));
             table.Columns.Add("Counter Name", Type.GetType("System.String"));
             table.Columns.Add("Frequency", Type.GetType("System.String"));
+
+            table.Columns.Add("Tolerance", Type.GetType("System.String"));
+            table.Columns.Add("ToleranceType", Type.GetType("System.String"));
+            table.Columns.Add("MaximumSampleSeparation", Type.GetType("System.String"));
 
             table.Columns.Add("Event ID", Type.GetType("System.String"));
             table.Columns.Add("Event Source", Type.GetType("System.String"));
@@ -1387,15 +1390,26 @@ namespace MPViewer
                         string counterName;
                         string objectName;
                         string frequency;
+                     
 
                         ExtractCounterAndObjectNameFromConfig(ds.Configuration, out objectName, out counterName, out frequency);
 
                         row["Object Name"]  = objectName;
                         row["Counter Name"] = counterName;
                         row["Frequency"]    = frequency;
-
-                        break;
+                        
                     }
+
+                    string interval;
+                    string tolerance;
+                    string toleranceType;
+                    string maxSampleSeparation;
+                    ExtractThresholdForRuleFromConfig(ds.Configuration, out interval, out tolerance, out toleranceType, out maxSampleSeparation);
+
+                    row["Tolerance"] = tolerance;
+                    row["ToleranceType"] = toleranceType;
+                    row["MaximumSampleSeparation"] = maxSampleSeparation;
+                    row["Frequency"] = interval;
                 }
             }
             catch (Exception)
@@ -1431,6 +1445,7 @@ namespace MPViewer
                 return (false);
             }
         }
+
 
         //---------------------------------------------------------------------
         private bool IsAlertGenerationWriteAction(
@@ -1474,7 +1489,7 @@ namespace MPViewer
             XmlNode frequencyNode = document.SelectSingleNode("//Config//Frequency");
             //sometimes "Interval" is used as opposed to "Frequency" in newer MPs...
             XmlNode intervalNode = document.SelectSingleNode("//Config//Interval");
-
+            XmlNode intervalSecondsNode = document.SelectSingleNode("//Config//IntervalSeconds");
 
             if (objectNameNode != null)
             {
@@ -1496,11 +1511,71 @@ namespace MPViewer
                 {
                     frequency = intervalNode.InnerText;
                 }
+
+                if (intervalSecondsNode != null)
+                {
+                    frequency = intervalSecondsNode.InnerText;
+                }
             }
         }
 
         //---------------------------------------------------------------------
-        private void ExtractIntervalAndThresholdFromConfig(
+        private void ExtractThresholdForRuleFromConfig(
+            string config,
+            out string interval,
+            out string tolerance,
+            out string toleranceType,
+            out string maxSampleSeparation
+            )
+        {
+            XmlDocument document = new XmlDocument();
+            document.LoadXml(string.Format("<Config>{0}</Config>", config));
+
+            interval = string.Empty;
+            tolerance = string.Empty;
+            toleranceType = string.Empty;
+            maxSampleSeparation = string.Empty;
+
+            XmlNode toleranceNode = document.SelectSingleNode("//Config//Tolerance");
+            XmlNode toleranceTypeNode = document.SelectSingleNode("//Config//ToleranceType");
+            XmlNode maxSampleSeparationNode = document.SelectSingleNode("//Config//MaximumSampleSeparation");
+            XmlNode intervalNode = document.SelectSingleNode("//Config//Interval");
+            XmlNode intervalSecondsNode = document.SelectSingleNode("//Config//IntervalSeconds");
+            XmlNode frequencyNode = document.SelectSingleNode("//Config//Frequency");
+
+            if (toleranceNode != null)
+            {
+                tolerance = toleranceNode.InnerText;
+            }
+
+            if (toleranceTypeNode != null)
+            {
+                toleranceType = toleranceTypeNode.InnerText;
+            }
+
+            if (maxSampleSeparationNode != null)
+            {
+                maxSampleSeparation = maxSampleSeparationNode.InnerText;
+            }
+
+            if (intervalNode != null)
+            {
+                interval = intervalNode.InnerText;
+            }
+            else if (intervalSecondsNode != null)
+            {
+                interval = intervalSecondsNode.InnerText;
+            }
+            else
+            {
+                if (frequencyNode != null)
+                {
+                    interval = frequencyNode.InnerText;
+                }
+            }
+        }
+        //---------------------------------------------------------------------
+        private void ExtractThresholdForMonitorFromConfig(
             string config,
             out string interval,
             out string threshold,
@@ -1510,10 +1585,9 @@ namespace MPViewer
             XmlDocument document = new XmlDocument();
             document.LoadXml(string.Format("<Config>{0}</Config>", config));
 
-            interval = string.Empty;
             threshold = string.Empty;
             numSamples = string.Empty;
-
+            interval = string.Empty;
             
             foreach (XmlNode pointCoord in document.SelectNodes("//Config"))
             {
@@ -1525,7 +1599,8 @@ namespace MPViewer
                         var nameOfElement = pointCoord.ChildNodes[i].Name;
                         var valueOfElement = pointCoord.ChildNodes[i].InnerText;
                         if (string.Equals(nameOfElement, "Interval", StringComparison.CurrentCultureIgnoreCase) ||
-                            string.Equals(nameOfElement, "IntervalSeconds", StringComparison.CurrentCultureIgnoreCase)
+                            string.Equals(nameOfElement, "IntervalSeconds", StringComparison.CurrentCultureIgnoreCase) ||
+                            string.Equals(nameOfElement, "Frequency", StringComparison.CurrentCultureIgnoreCase)
                             )
                         {
                             interval = valueOfElement;
@@ -1535,24 +1610,7 @@ namespace MPViewer
                         {
                             threshold += nameOfElement + ":" + valueOfElement + " ";
                         }
-
-                        /*
-                        if (string.Equals(nameOfElement, "Threshold", StringComparison.CurrentCultureIgnoreCase))
-                        {
-                            threshold += valueOfElement;
-                        }
-
-                       
-                        if (string.Equals(nameOfElement, "ThresholdWarnSec", StringComparison.CurrentCultureIgnoreCase))
-                        {
-                            threshold += "  ThresholdWarnSec=" + valueOfElement;
-                        }
-
-                        if (string.Equals(nameOfElement, "ThresholdErrorSec", StringComparison.CurrentCultureIgnoreCase))
-                        {
-                            threshold += "  ThresholdErrorSec=" + valueOfElement;
-                        }
-                        */
+                        
 
                         if (string.Equals(nameOfElement, "Direction", StringComparison.CurrentCultureIgnoreCase))
                         {

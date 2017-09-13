@@ -13,9 +13,10 @@ namespace MPViewer
 {
     class DatasetCreator
     {
-        DataSet                 m_dataset;
-        IList<ManagementPack>   m_managementPack;
-        Delegate                m_mpLoadingProcess;
+        DataSet m_dataset;
+        DataTable m_overridedt;
+        IList<ManagementPack> m_managementPack;
+        Delegate m_mpLoadingProcess;
 
         internal delegate void StubDelegate();
 
@@ -28,6 +29,7 @@ namespace MPViewer
             m_dataset = new DataSet();
             m_managementPack = managementPack;
             CreateManagementPackTable();
+            CreateOverridesTable();
             CreateUnitMonitorsTable();
             CreateDependencyMonitorsTable();
             CreateAggregateMonitorsTable();
@@ -38,7 +40,7 @@ namespace MPViewer
             CreateClassesTable();
             CreateRecoveriesTable();
             CreateDiagnosticsTable();
-            CreateOverridesTable();
+            //CreateOverridesTable();
             CreateGroupsTable();
             CreateViewsTable();
             CreateConsoleTasksTable();
@@ -49,7 +51,7 @@ namespace MPViewer
             IList<ManagementPackElementCollection<ManagementPackLinkedReport>> LinkedReports = new List<ManagementPackElementCollection<ManagementPackLinkedReport>>();
             IList<ManagementPackElementCollection<ManagementPackReport>> Reports = new List<ManagementPackElementCollection<ManagementPackReport>>();
 
-        
+
 
             foreach (ManagementPack MP in m_managementPack)
             {
@@ -62,64 +64,75 @@ namespace MPViewer
             CreateGenericTable(LinkedReports, "Linked Reports", false, true);
             CreateGenericTable(Reports, "Reports", false, true);
         }
-        
+
 
 
         //this overload is the one used by the UI
         internal DatasetCreator(
             IList<ManagementPack> managementPack, Delegate MPLoadingProcess)
-            
         {
-            m_dataset           = new DataSet();            
-            m_managementPack    = managementPack;
-            m_mpLoadingProcess  = MPLoadingProcess;
+            m_dataset = new DataSet();
+            m_managementPack = managementPack;
+            m_mpLoadingProcess = MPLoadingProcess;
             m_mpLoadingProcess.DynamicInvoke(0, "Loading Management Packs");
             CreateManagementPackTable();
+
+            m_mpLoadingProcess.DynamicInvoke(5, "Loading Overrides");
+            m_overridedt = CreateOverridesTable();
+
+            /*
             m_mpLoadingProcess.DynamicInvoke(5, "Loading Unit Monitors");
             CreateUnitMonitorsTable();
+            */
 
             m_mpLoadingProcess.DynamicInvoke(10, "Loading Dependency Monitors");
             CreateDependencyMonitorsTable();
-            
+
             m_mpLoadingProcess.DynamicInvoke(15, "Loading Aggregate Monitors");
             CreateAggregateMonitorsTable();
-            
+
             m_mpLoadingProcess.DynamicInvoke(20, "Loading Rules");
             CreateRulesTable();
-            
+
             m_mpLoadingProcess.DynamicInvoke(25, "Loading Discoveries");
             CreateDiscoveriesTable();
-            
+
             m_mpLoadingProcess.DynamicInvoke(30, "Loading Dependencies");
             CreateReferencesTable();
-            
+
             m_mpLoadingProcess.DynamicInvoke(35, "Loading Relationships");
             CreateRelationshipsTable();
-            
+
             m_mpLoadingProcess.DynamicInvoke(40, "Loading Classes");
             CreateClassesTable();
-            
+
             m_mpLoadingProcess.DynamicInvoke(45, "Loading Recoveries");
             CreateRecoveriesTable();
-            
+
             m_mpLoadingProcess.DynamicInvoke(50, "Loading Diagnostics");
             CreateDiagnosticsTable();
+
             
+            m_mpLoadingProcess.DynamicInvoke(55, "Loading Unit Monitors");
+            CreateUnitMonitorsTable();
+            
+            /*
             m_mpLoadingProcess.DynamicInvoke(55, "Loading Overrides");
             CreateOverridesTable();
-            
+            */
+
             m_mpLoadingProcess.DynamicInvoke(60, "Loading Groups");
             CreateGroupsTable();
-            
+
             m_mpLoadingProcess.DynamicInvoke(65, "Loading Views");
             CreateViewsTable();
-            
+
             m_mpLoadingProcess.DynamicInvoke(70, "Loading Console Tasks");
             CreateConsoleTasksTable();
-            
+
             m_mpLoadingProcess.DynamicInvoke(75, "Loading Resources");
             CreateResourcesTable();
-            
+
             m_mpLoadingProcess.DynamicInvoke(80, "Loading Dashboards");
             CreateDashboardsTable();
             m_mpLoadingProcess.DynamicInvoke(81, "Loading Modules");
@@ -142,7 +155,7 @@ namespace MPViewer
             CreateGenericTable(LinkedReports, "Linked Reports", false, true);
             m_mpLoadingProcess.DynamicInvoke(95, "Loading Reports");
             CreateGenericTable(Reports, "Reports", false, true);
-            
+
             m_mpLoadingProcess.DynamicInvoke(100, "Done!");
         }
 
@@ -234,7 +247,8 @@ namespace MPViewer
             table.Columns.Add("ObjectRef");
             foreach (ManagementPack mp in m_managementPack)
             {
-                foreach (ManagementPackModuleType mod in mp.GetModuleTypes()) { 
+                foreach (ManagementPackModuleType mod in mp.GetModuleTypes())
+                {
                     DataRow row = table.NewRow();
                     row["Name"] = mod.Name;
                     row["Display Name"] = mod.DisplayName;
@@ -263,7 +277,7 @@ namespace MPViewer
                     }
                     row["Type"] = moduletype;
                     row["Management Pack"] = mod.GetManagementPack().Name;
-                 
+
                     row["ObjectRef"] = mp.Name + ';' + mod.Name;
                     table.Rows.Add(row);
                 }
@@ -278,33 +292,33 @@ namespace MPViewer
 
         //---------------------------------------------------------------------
         private void PopulateGenericMonitorProperties(
-            ManagementPackMonitor       monitor,
-            DataRow                     row
+            ManagementPackMonitor monitor,
+            DataRow row
             )
         {
-            row["Name"]     = Utilities.GetBestMPElementName(monitor);
+            row["Name"] = Utilities.GetBestMPElementName(monitor);
             row["Category"] = monitor.Category.ToString();
-            row["Enabled"]  = (monitor.Enabled != ManagementPackMonitoringLevel.@false);
-            row["Target"]   = AttempToResolveName(monitor.Target);
+            row["Enabled"] = (monitor.Enabled != ManagementPackMonitoringLevel.@false);
+            row["Target"] = AttempToResolveName(monitor.Target);
 
             if (monitor.AlertSettings == null)
             {
-                row["Generate Alert"]   = false;
-                row["Alert Severity"]   = string.Empty;
-                row["Auto Resolve"]     = string.Empty;
+                row["Generate Alert"] = false;
+                row["Alert Severity"] = string.Empty;
+                row["Auto Resolve"] = string.Empty;
             }
             else
             {
-                row["Generate Alert"]   = true;
-                row["Alert Severity"]   = monitor.AlertSettings.AlertSeverity.ToString();
-                row["Alert Priority"]   = monitor.AlertSettings.AlertPriority.ToString();
-                row["Auto Resolve"]     = monitor.AlertSettings.AutoResolve.ToString();
+                row["Generate Alert"] = true;
+                row["Alert Severity"] = monitor.AlertSettings.AlertSeverity.ToString();
+                row["Alert Priority"] = monitor.AlertSettings.AlertPriority.ToString();
+                row["Auto Resolve"] = monitor.AlertSettings.AutoResolve.ToString();
             }
 
-            row["Remotable"]        = monitor.Remotable;
-            row["Description"]      = monitor.Description;
-            row["ObjectRef"]        = monitor.GetManagementPack().Name + ';' + monitor.Name;
-            row["Accessibility"]    = monitor.Accessibility.ToString();
+            row["Remotable"] = monitor.Remotable;
+            row["Description"] = monitor.Description;
+            row["ObjectRef"] = monitor.GetManagementPack().Name + ';' + monitor.Name;
+            row["Accessibility"] = monitor.Accessibility.ToString();
             row["Management Pack"] = monitor.GetManagementPack().Name;
         }
 
@@ -460,7 +474,7 @@ namespace MPViewer
             }
         }
 
-        
+
         //---------------------------------------------------------------------
         private void CreateViewsTable()
         {
@@ -472,7 +486,7 @@ namespace MPViewer
             table.Columns.Add("Target", Type.GetType("System.String"));
             table.Columns.Add("Type", Type.GetType("System.String"));
             table.Columns.Add("Accessibility", Type.GetType("System.String"));
-            table.Columns.Add("Visible", Type.GetType("System.Boolean"));                        
+            table.Columns.Add("Visible", Type.GetType("System.Boolean"));
             table.Columns.Add("Description", Type.GetType("System.String"));
             table.Columns.Add("ObjectRef");
             table.Columns.Add("Management Pack");
@@ -542,7 +556,7 @@ namespace MPViewer
 
             m_dataset.Tables.Add(table);
 
-            table.Columns.Add("Name", Type.GetType("System.String"));            
+            table.Columns.Add("Name", Type.GetType("System.String"));
             table.Columns.Add("Description", Type.GetType("System.String"));
             table.Columns.Add("Accessibility", Type.GetType("System.String"));
             table.Columns.Add("ObjectRef");
@@ -570,13 +584,14 @@ namespace MPViewer
         }
 
         //---------------------------------------------------------------------
-        private void CreateOverridesTable()
+        private DataTable CreateOverridesTable()
         {
             DataTable table = new DataTable("Overrides");
 
             m_dataset.Tables.Add(table);
 
             table.Columns.Add("Name", Type.GetType("System.String"));
+            table.Columns.Add("WorkflowInternalName", Type.GetType("System.String"));
             table.Columns.Add("Workflow", Type.GetType("System.String"));
             table.Columns.Add("Workflow Type", Type.GetType("System.String"));
             table.Columns.Add("Property", Type.GetType("System.String"));
@@ -585,12 +600,14 @@ namespace MPViewer
             table.Columns.Add("Description", Type.GetType("System.String"));
             table.Columns.Add("ObjectRef");
             table.Columns.Add("Management Pack");
-            foreach(ManagementPack MP in m_managementPack){
+            foreach (ManagementPack MP in m_managementPack)
+            {
                 foreach (ManagementPackOverride mpOverride in MP.GetOverrides())
                 {
                     DataRow row = table.NewRow();
 
                     row["Name"] = mpOverride.Name;
+                    row["WorkflowInternalName"] = mpOverride.Name;
                     row["Value"] = mpOverride.Value;
                     row["Is Enforced"] = mpOverride.Enforced;
                     row["Name"] = AttempToResolveName(mpOverride.Context);
@@ -600,7 +617,7 @@ namespace MPViewer
                     {
                         row["Workflow Type"] = "Discovery";
                         row["Workflow"] = AttempToResolveName(((ManagementPackDiscoveryOverride)mpOverride).Discovery);
-
+                        row["WorkflowInternalName"] = AttempToResolveInternalName(((ManagementPackDiscoveryOverride)mpOverride).Discovery);
                         if (mpOverride is ManagementPackDiscoveryConfigurationOverride)
                         {
                             row["Property"] = ((ManagementPackDiscoveryConfigurationOverride)mpOverride).Parameter;
@@ -614,7 +631,7 @@ namespace MPViewer
                     {
                         row["Workflow Type"] = "Rule";
                         row["Workflow"] = AttempToResolveName(((ManagementPackRuleOverride)mpOverride).Rule);
-
+                        row["WorkflowInternalName"] = AttempToResolveInternalName(((ManagementPackRuleOverride)mpOverride).Rule);
                         if (mpOverride is ManagementPackRuleConfigurationOverride)
                         {
                             row["Property"] = ((ManagementPackRuleConfigurationOverride)mpOverride).Parameter;
@@ -628,7 +645,7 @@ namespace MPViewer
                     {
                         row["Workflow Type"] = "Monitor";
                         row["Workflow"] = AttempToResolveName(((ManagementPackMonitorOverride)mpOverride).Monitor);
-
+                        row["WorkflowInternalName"] = AttempToResolveInternalName(((ManagementPackMonitorOverride)mpOverride).Monitor);
                         if (mpOverride is ManagementPackMonitorConfigurationOverride)
                         {
                             row["Property"] = ((ManagementPackMonitorConfigurationOverride)mpOverride).Parameter;
@@ -642,7 +659,7 @@ namespace MPViewer
                     {
                         row["Workflow Type"] = "Diagnostic";
                         row["Workflow"] = AttempToResolveName(((ManagementPackDiagnosticOverride)mpOverride).Diagnostic);
-
+                        row["WorkflowInternalName"] = AttempToResolveInternalName(((ManagementPackDiagnosticOverride)mpOverride).Diagnostic);
                         if (mpOverride is ManagementPackDiagnosticConfigurationOverride)
                         {
                             row["Property"] = ((ManagementPackDiagnosticConfigurationOverride)mpOverride).Parameter;
@@ -656,6 +673,7 @@ namespace MPViewer
                     {
                         row["Workflow Type"] = "Recovery";
                         row["Workflow"] = AttempToResolveName(((ManagementPackRecoveryOverride)mpOverride).Recovery);
+                        row["WorkflowInternalName"] = AttempToResolveInternalName(((ManagementPackRecoveryOverride)mpOverride).Recovery);
 
                         if (mpOverride is ManagementPackRecoveryConfigurationOverride)
                         {
@@ -674,6 +692,7 @@ namespace MPViewer
                     table.Rows.Add(row);
                 }
             }
+            return table;
         }
 
         //---------------------------------------------------------------------
@@ -697,6 +716,29 @@ namespace MPViewer
             }
 
             return (elementDisplayName);
+        }
+
+        //---------------------------------------------------------------------
+        private string AttempToResolveInternalName<MPElementType>(
+            ManagementPackElementReference<MPElementType> managementPackElementReference
+            ) where MPElementType : ManagementPackElement
+        {
+            string elementName = "";
+
+            try
+            {
+                MPElementType element = managementPackElementReference.GetElement();
+                elementName = Common.Utilities.GetBestMPElementInternalName(element);
+            }
+            catch (Exception)
+            {
+                if (managementPackElementReference != null)
+                {
+                    elementName = managementPackElementReference.Name;
+                }
+            }
+
+            return (elementName);
         }
 
         //---------------------------------------------------------------------
@@ -778,7 +820,7 @@ namespace MPViewer
 
             m_dataset.Tables.Add(table);
 
-            table.Columns.Add("Name", Type.GetType("System.String"));            
+            table.Columns.Add("Name", Type.GetType("System.String"));
             table.Columns.Add("Source", Type.GetType("System.String"));
             table.Columns.Add("Target", Type.GetType("System.String"));
             table.Columns.Add("Type", Type.GetType("System.String"));
@@ -800,7 +842,7 @@ namespace MPViewer
                     }
                     row["Description"] = relationship.Description;
                     row["ObjectRef"] = relationship.GetManagementPack().Name + ';' + relationship.Name;
-                    row["Management Pack"] =  relationship.GetManagementPack().Name;
+                    row["Management Pack"] = relationship.GetManagementPack().Name;
                     table.Rows.Add(row);
                 }
             }
@@ -819,7 +861,7 @@ namespace MPViewer
             table.Columns.Add("Is Hosted", Type.GetType("System.Boolean"));
             table.Columns.Add("Is Singleton", Type.GetType("System.Boolean"));
             table.Columns.Add("Accessibility", Type.GetType("System.String"));
-            table.Columns.Add("Description", Type.GetType("System.String"));            
+            table.Columns.Add("Description", Type.GetType("System.String"));
             table.Columns.Add("ObjectRef");
             table.Columns.Add("Management Pack");
             foreach (ManagementPack MP in m_managementPack)
@@ -863,7 +905,7 @@ namespace MPViewer
                     row["Name"] = reference.Value.Name;
                     row["Version"] = reference.Value.Version.ToString();
                     row["KeyToken"] = reference.Value.KeyToken.ToString();
-                    row["ObjectRef"] =  MP.Name + ';' + reference.Key;
+                    row["ObjectRef"] = MP.Name + ';' + reference.Key;
                     row["Management Pack"] = MP.Name;
                     table.Rows.Add(row);
                 }
@@ -885,7 +927,7 @@ namespace MPViewer
             table.Columns.Add("Counter Name", Type.GetType("System.String"));
             table.Columns.Add("Frequency", Type.GetType("System.String"));
             table.Columns.Add("Threshold", Type.GetType("System.String"));
-            //table.Columns.Add("Interval", Type.GetType("System.String"));
+            table.Columns.Add("Override", Type.GetType("System.String"));
             table.Columns.Add("Number Of Samples", Type.GetType("System.String"));
             table.Columns.Add("Generate Alert", Type.GetType("System.Boolean"));
             table.Columns.Add("Alert Severity", Type.GetType("System.String"));
@@ -913,7 +955,7 @@ namespace MPViewer
                     ManagementPackUnitMonitor unitMonitor = (ManagementPackUnitMonitor)monitor;
 
                     row["MonitorType"] = GetFriendlyMonitorTypeName(unitMonitor.TypeID.Name);
-                   
+
                     if (IsPerformanceUnitMonitor(unitMonitor))
                     {
                         string counterName;
@@ -936,6 +978,28 @@ namespace MPViewer
                     row["Threshold"] = threshold;
                     row["Number Of Samples"] = numSamples;
 
+                    
+                    string monitorInternalName;
+                    string overridePro;
+                    string overrideProValue;
+                    string overrideFullString = "";
+
+                    monitorInternalName = Utilities.GetBestMPElementInternalName(monitor);
+                    
+                    if(m_overridedt != null && m_overridedt.Rows.Count > 0)
+                    {
+                        DataRow[] filteredRows = m_overridedt.Select("WorkflowInternalName='" + monitorInternalName + "'");
+                        foreach (DataRow dataRow in filteredRows)
+                        {
+                            overridePro = dataRow["Property"].ToString();
+                            overrideProValue = dataRow["Value"].ToString();
+
+                            overrideFullString = overrideFullString + overridePro + "=" + overrideProValue + ";";
+                        }
+                    }
+
+                    row["Override"] = overrideFullString;
+                    
 
                     table.Rows.Add(row);
                 }
@@ -1012,7 +1076,7 @@ namespace MPViewer
             table.Columns.Add("Alert Severity", Type.GetType("System.String"));
             table.Columns.Add("Alert Priority", Type.GetType("System.String"));
             table.Columns.Add("Remotable", Type.GetType("System.Boolean"));
-            table.Columns.Add("Description", Type.GetType("System.String"));            
+            table.Columns.Add("Description", Type.GetType("System.String"));
             table.Columns.Add("ObjectRef");
             table.Columns.Add("Management Pack");
             foreach (ManagementPack MP in m_managementPack)
@@ -1137,7 +1201,7 @@ namespace MPViewer
                         XmlDocument document = new XmlDocument();
                         document.LoadXml(string.Format("<Config>{0}</Config>", ds.Configuration));
 
-                        ExtractEventLogName(document,row);
+                        ExtractEventLogName(document, row);
                         ExtractEventId(document, row);
                         ExtractEventSource(document, row);
                     }
@@ -1161,45 +1225,45 @@ namespace MPViewer
             // we'll use this to accumulate the results in case of complex expressions in a single rule
             List<string> ExpressionInfo = new List<string>();
 
-                if (expressionNode.ChildNodes.Count > 1)
+            if (expressionNode.ChildNodes.Count > 1)
+            {
+                foreach (XmlNode node in expressionNode.ChildNodes)
                 {
-                    foreach (XmlNode node in expressionNode.ChildNodes)
+                    if (node.Name == "And" || node.Name == "Or")
                     {
-                        if (node.Name == "And" || node.Name == "Or")
+                        foreach (XmlNode n in node.ChildNodes)
                         {
-                            foreach (XmlNode n in node.ChildNodes)
-                            {
-                                ExtractEventSourceFromExpressionNode(n, ExpressionInfo);
-                            }
-                        }
-                        else
-                        {
-                            ExtractEventSourceFromExpressionNode(expressionNode, ExpressionInfo);
+                            ExtractEventSourceFromExpressionNode(n, ExpressionInfo);
                         }
                     }
-                }
-                else
-                {
-                    ExtractEventSourceFromExpressionNode(expressionNode, ExpressionInfo);
-                }
-
-
-                // loop thru whatever we have accumulated
-                if (ExpressionInfo.Count != 0)
-                {
-                    String EventSourceString = String.Empty;
-
-                    foreach (String info in ExpressionInfo)
-                    {
-                        EventSourceString = EventSourceString + info + "; ";
-                    }
-
-                    //Adding up the accumulated values as a string with a separator and trimming off the last "; " (if present)
-                    if (!String.IsNullOrEmpty(EventSourceString))
-                        row["Event Source"] = EventSourceString.Remove(EventSourceString.Length - 2);
                     else
-                        row["Event Source"] = EventSourceString;
+                    {
+                        ExtractEventSourceFromExpressionNode(expressionNode, ExpressionInfo);
+                    }
                 }
+            }
+            else
+            {
+                ExtractEventSourceFromExpressionNode(expressionNode, ExpressionInfo);
+            }
+
+
+            // loop thru whatever we have accumulated
+            if (ExpressionInfo.Count != 0)
+            {
+                String EventSourceString = String.Empty;
+
+                foreach (String info in ExpressionInfo)
+                {
+                    EventSourceString = EventSourceString + info + "; ";
+                }
+
+                //Adding up the accumulated values as a string with a separator and trimming off the last "; " (if present)
+                if (!String.IsNullOrEmpty(EventSourceString))
+                    row["Event Source"] = EventSourceString.Remove(EventSourceString.Length - 2);
+                else
+                    row["Event Source"] = EventSourceString;
+            }
 
         }
         private void ExtractEventSourceFromExpressionNode(XmlNode expressionNode, List<string> ExpressionInfo)
@@ -1268,45 +1332,45 @@ namespace MPViewer
             // we'll use this to accumulate the results in case of complex expressions in a single rule
             List<string> ExpressionInfo = new List<string>();
 
-                if (expressionNode.ChildNodes.Count > 1)
+            if (expressionNode.ChildNodes.Count > 1)
+            {
+                foreach (XmlNode node in expressionNode.ChildNodes)
                 {
-                    foreach (XmlNode node in expressionNode.ChildNodes)
+                    if (node.Name == "And" || node.Name == "Or")
                     {
-                        if (node.Name == "And" || node.Name == "Or")
+                        foreach (XmlNode n in node.ChildNodes)
                         {
-                            foreach (XmlNode n in node.ChildNodes)
-                            {
-                                ExtractEventIdFromExpressionNode(n, ExpressionInfo);
-                            }
-                        }
-                        else
-                        {
-                            ExtractEventIdFromExpressionNode(expressionNode, ExpressionInfo);
+                            ExtractEventIdFromExpressionNode(n, ExpressionInfo);
                         }
                     }
-                }
-                else
-                {
-                    ExtractEventIdFromExpressionNode(expressionNode, ExpressionInfo);
-                }
-
-
-                // loop thru whatever we have accumulated
-                if (ExpressionInfo.Count != 0)
-                {
-                    String EventIDString = String.Empty;
-
-                    foreach (String info in ExpressionInfo)
-                    {
-                        EventIDString = EventIDString + info + "; ";
-                    }
-
-                    //Adding up the accumulated values as a string with a separator and trimming off the last "; " (if present)
-                    if (!String.IsNullOrEmpty(EventIDString))
-                        row["Event ID"] = EventIDString.Remove(EventIDString.Length - 2);
                     else
-                        row["Event ID"] = EventIDString;
+                    {
+                        ExtractEventIdFromExpressionNode(expressionNode, ExpressionInfo);
+                    }
                 }
+            }
+            else
+            {
+                ExtractEventIdFromExpressionNode(expressionNode, ExpressionInfo);
+            }
+
+
+            // loop thru whatever we have accumulated
+            if (ExpressionInfo.Count != 0)
+            {
+                String EventIDString = String.Empty;
+
+                foreach (String info in ExpressionInfo)
+                {
+                    EventIDString = EventIDString + info + "; ";
+                }
+
+                //Adding up the accumulated values as a string with a separator and trimming off the last "; " (if present)
+                if (!String.IsNullOrEmpty(EventIDString))
+                    row["Event ID"] = EventIDString.Remove(EventIDString.Length - 2);
+                else
+                    row["Event ID"] = EventIDString;
+            }
         }
         private void ExtractEventIdFromExpressionNode(XmlNode expressionNode, List<string> ExpressionInfo)
         {
@@ -1319,7 +1383,7 @@ namespace MPViewer
                 {
                     ExtractEventIdFromExpressionNode(c, ExpressionInfo);
                 }
-                
+
             }
             else
             {
@@ -1367,7 +1431,7 @@ namespace MPViewer
 
 
         //---------------------------------------------------------------------
-        private void ExtractEventLogName(XmlDocument document,DataRow row)
+        private void ExtractEventLogName(XmlDocument document, DataRow row)
         {
             row["Event Log"] = document.SelectSingleNode("//Config/LogName").InnerText;
         }
@@ -1390,14 +1454,14 @@ namespace MPViewer
                         string counterName;
                         string objectName;
                         string frequency;
-                     
+
 
                         ExtractCounterAndObjectNameFromConfig(ds.Configuration, out objectName, out counterName, out frequency);
 
-                        row["Object Name"]  = objectName;
+                        row["Object Name"] = objectName;
                         row["Counter Name"] = counterName;
-                        row["Frequency"]    = frequency;
-                        
+                        row["Frequency"] = frequency;
+
                     }
 
                     string interval;
@@ -1435,7 +1499,7 @@ namespace MPViewer
                 datasourceName == "System.NetworkManagement.SnmpPerformanceProvider.ProcessorUtilization" ||
                 datasourceName == "System.NetworkManagement.SnmpPerformanceProvider.Rate" ||
                 datasourceName == "Microsoft.Unix.WSMan.PerfCounterProvider" ||
-                datasourceName == "Microsoft.Unix.WSMan.PerfCounterProvider.Filtered" || 
+                datasourceName == "Microsoft.Unix.WSMan.PerfCounterProvider.Filtered" ||
                 datasourceName == "Microsoft.Unix.WSMan.PerfCounterProvider.Filtered.Delta")
             {
                 return (true);
@@ -1459,7 +1523,7 @@ namespace MPViewer
                 writeActionName == "System.Mom.BackwardCompatibility.AlertResponse" ||
                 writeActionName == "Microsoft.Windows.Server.IIS.6.2.GenerateAlertAction.SuppressedByDescription" ||
                 writeActionName == "Microsoft.Windows.Server.IIS.2008.GenerateAlertAction.SuppressedByDescription" ||
-                writeActionName == "Microsoft.Forefront.TMG.Rule.AlertGenerate.WA" )
+                writeActionName == "Microsoft.Forefront.TMG.Rule.AlertGenerate.WA")
             {
                 return (true);
             }
@@ -1471,18 +1535,18 @@ namespace MPViewer
 
         //---------------------------------------------------------------------
         private void ExtractCounterAndObjectNameFromConfig(
-            string      config,
-            out string  objectName,
-            out string  counterName,
-            out string  frequency
+            string config,
+            out string objectName,
+            out string counterName,
+            out string frequency
             )
         {
             XmlDocument document = new XmlDocument();
             document.LoadXml(string.Format("<Config>{0}</Config>", config));
 
-            objectName  = string.Empty;
+            objectName = string.Empty;
             counterName = string.Empty;
-            frequency   = string.Empty;
+            frequency = string.Empty;
 
             XmlNode objectNameNode = document.SelectSingleNode("//Config//ObjectName");
             XmlNode counterNameNode = document.SelectSingleNode("//Config//CounterName");
@@ -1588,7 +1652,7 @@ namespace MPViewer
             threshold = string.Empty;
             numSamples = string.Empty;
             interval = string.Empty;
-            
+
             foreach (XmlNode pointCoord in document.SelectNodes("//Config"))
             {
                 if (pointCoord != null && pointCoord.HasChildNodes)
@@ -1606,33 +1670,33 @@ namespace MPViewer
                             interval = valueOfElement;
                         }
 
-                        if (nameOfElement.IndexOf("Threshold",StringComparison.CurrentCultureIgnoreCase) != -1)
+                        if (nameOfElement.IndexOf("Threshold", StringComparison.CurrentCultureIgnoreCase) != -1)
                         {
                             threshold += nameOfElement + ":" + valueOfElement + " ";
                         }
-                        
+
 
                         if (string.Equals(nameOfElement, "Direction", StringComparison.CurrentCultureIgnoreCase))
                         {
                             switch (valueOfElement.ToLower())
                             {
-                                case "greater": 
-                                     threshold = " > " + threshold;
-                                     break;
+                                case "greater":
+                                    threshold = " > " + threshold;
+                                    break;
                                 case "lessequal":
-                                     threshold = " <= " + threshold;
-                                     break;
+                                    threshold = " <= " + threshold;
+                                    break;
                                 case "equal":
-                                     threshold = " = " + threshold;
-                                     break;
+                                    threshold = " = " + threshold;
+                                    break;
                                 case "greaterequal":
-                                     threshold = " >= " + threshold;
-                                     break;
+                                    threshold = " >= " + threshold;
+                                    break;
                                 case "less":
-                                     threshold = " < " + threshold;
-                                     break;
+                                    threshold = " < " + threshold;
+                                    break;
                                 default:
-                                     threshold = valueOfElement + " " + threshold;
+                                    threshold = valueOfElement + " " + threshold;
                                     break;
                             }
                         }
@@ -1641,7 +1705,7 @@ namespace MPViewer
                         {
                             numSamples = valueOfElement;
                         }
-                    }                 
+                    }
                 }
             }
         }
@@ -1681,10 +1745,10 @@ namespace MPViewer
 
         //---------------------------------------------------------------------
         private void CreateGenericTable<MPElementType>(
-            IList<ManagementPackElementCollection<MPElementType>>  mpElementCollection,
-            string                                          tableName,
-            bool                                            isWorkflow,
-            bool                                            hasTarget
+            IList<ManagementPackElementCollection<MPElementType>> mpElementCollection,
+            string tableName,
+            bool isWorkflow,
+            bool hasTarget
             ) where MPElementType : ManagementPackElement
         {
             DataTable table = new DataTable(tableName);
@@ -1693,8 +1757,8 @@ namespace MPViewer
 
             table.Columns.Add("Name", Type.GetType("System.String"));
             table.Columns.Add("Description", Type.GetType("System.String"));
-            
-            
+
+
 
             if (isWorkflow)
             {
@@ -1705,10 +1769,11 @@ namespace MPViewer
             {
                 table.Columns.Add("Target", Type.GetType("System.String"));
             }
-            
+
             table.Columns.Add("ObjectRef");
             table.Columns.Add("Management Pack");
-            foreach(ManagementPackElementCollection<MPElementType> MPE in mpElementCollection){
+            foreach (ManagementPackElementCollection<MPElementType> MPE in mpElementCollection)
+            {
                 foreach (MPElementType element in MPE)
                 {
                     DataRow row = table.NewRow();
@@ -1762,9 +1827,9 @@ namespace MPViewer
             )
         {
             XmlDocument document = new XmlDocument();
-            XmlNode     frequencyNode;
-            string      xmlContent;
-            string      frequency = string.Empty;
+            XmlNode frequencyNode;
+            string xmlContent;
+            string frequency = string.Empty;
 
             xmlContent = string.Format("<config>{0}</config>", managementPackDiscovery.DataSource.Configuration);
 
@@ -1805,15 +1870,15 @@ namespace MPViewer
         private string GetFriendlyMonitorTypeName(string monitorType)
         {
             //Resolve some of the common monitor types to user friendly names
-            if(monitorType == "Microsoft.Windows.CheckNTServiceStateMonitorType")
-            {return "Basic NT Service Monitor"; }
-            else if(monitorType == "Microsoft.Windows.3SingleEventLog3StateUnitMonitorType")
-            {return "3 State Event Log Monitor";}
+            if (monitorType == "Microsoft.Windows.CheckNTServiceStateMonitorType")
+            { return "Basic NT Service Monitor"; }
+            else if (monitorType == "Microsoft.Windows.3SingleEventLog3StateUnitMonitorType")
+            { return "3 State Event Log Monitor"; }
             else if (monitorType == "Microsoft.Windows.2SingleEventLog2StateMonitorType")
             { return "2 State Event Log Monitor"; }
-            else if(monitorType == "System.Performance.ThresholdMonitorType")
-            {return "Simple Performance Counter Threshold";}
-            else if(monitorType == "System.Performance.DeltaThreshold")
+            else if (monitorType == "System.Performance.ThresholdMonitorType")
+            { return "Simple Performance Counter Threshold"; }
+            else if (monitorType == "System.Performance.DeltaThreshold")
             { return "Delta Performance Counter Threshold"; }
             else if (monitorType == "System.Performance.DoubleThreshold")
             { return "Double Performance Counter Threshold"; }

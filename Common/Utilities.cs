@@ -60,6 +60,14 @@ namespace Common
         }
 
         //---------------------------------------------------------------------
+        internal static string GetBestMPElementInternalName(
+            ManagementPackElement element
+            )
+        {
+            return element.Name;
+        }
+
+        //---------------------------------------------------------------------
         internal static string GetBestManagementPackName(
             ManagementPack managementPack
             )

@@ -176,6 +176,7 @@ namespace MPViewer
             table.Columns.Add("Alert Priority", Type.GetType("System.String"));
             table.Columns.Add("Auto Resolve", Type.GetType("System.String"));
             table.Columns.Add("Remotable", Type.GetType("System.Boolean"));
+            table.Columns.Add("Override", Type.GetType("System.String"));
             table.Columns.Add("Accessibility", Type.GetType("System.String"));
             table.Columns.Add("Description", Type.GetType("System.String"));
             table.Columns.Add("ObjectRef");
@@ -196,6 +197,27 @@ namespace MPViewer
                     PopulateGenericMonitorProperties(monitor, row);
 
                     row["Algorithm"] = ((ManagementPackAggregateMonitor)monitor).Algorithm.ToString();
+
+                    string monitorInternalName;
+                    string overridePro;
+                    string overrideProValue;
+                    string overrideFullString = "";
+
+                    monitorInternalName = Utilities.GetBestMPElementInternalName(monitor);
+
+                    if (m_overridedt != null && m_overridedt.Rows.Count > 0)
+                    {
+                        DataRow[] filteredRows = m_overridedt.Select("WorkflowInternalName='" + monitorInternalName + "'");
+                        foreach (DataRow dataRow in filteredRows)
+                        {
+                            overridePro = dataRow["Property"].ToString();
+                            overrideProValue = dataRow["Value"].ToString();
+
+                            overrideFullString = overrideFullString + overridePro + "=" + overrideProValue + ";";
+                        }
+                    }
+
+                    row["Override"] = overrideFullString;
 
                     table.Rows.Add(row);
                 }
@@ -342,6 +364,7 @@ namespace MPViewer
             table.Columns.Add("Alert Priority", Type.GetType("System.String"));
             table.Columns.Add("Auto Resolve", Type.GetType("System.String"));
             table.Columns.Add("Remotable", Type.GetType("System.Boolean"));
+            table.Columns.Add("Override", Type.GetType("System.String"));
             table.Columns.Add("Accessibility", Type.GetType("System.String"));
             table.Columns.Add("Description", Type.GetType("System.String"));
             table.Columns.Add("ObjectRef");
@@ -363,6 +386,27 @@ namespace MPViewer
                     row["Algorithm Parameter"] = ((ManagementPackDependencyMonitor)monitor).AlgorithmParameter;
                     row["Source Monitor"] = AttempToResolveName(((ManagementPackDependencyMonitor)monitor).MemberMonitor);
                     row["Relationship"] = AttempToResolveName(((ManagementPackDependencyMonitor)monitor).RelationshipType);
+
+                    string monitorInternalName;
+                    string overridePro;
+                    string overrideProValue;
+                    string overrideFullString = "";
+
+                    monitorInternalName = Utilities.GetBestMPElementInternalName(monitor);
+
+                    if (m_overridedt != null && m_overridedt.Rows.Count > 0)
+                    {
+                        DataRow[] filteredRows = m_overridedt.Select("WorkflowInternalName='" + monitorInternalName + "'");
+                        foreach (DataRow dataRow in filteredRows)
+                        {
+                            overridePro = dataRow["Property"].ToString();
+                            overrideProValue = dataRow["Value"].ToString();
+
+                            overrideFullString = overrideFullString + overridePro + "=" + overrideProValue + ";";
+                        }
+                    }
+
+                    row["Override"] = overrideFullString;
 
                     table.Rows.Add(row);
                 }
@@ -1075,7 +1119,9 @@ namespace MPViewer
             table.Columns.Add("Generate Alert", Type.GetType("System.Boolean"));
             table.Columns.Add("Alert Severity", Type.GetType("System.String"));
             table.Columns.Add("Alert Priority", Type.GetType("System.String"));
+
             table.Columns.Add("Remotable", Type.GetType("System.Boolean"));
+            table.Columns.Add("Override", Type.GetType("System.String"));
             table.Columns.Add("Description", Type.GetType("System.String"));
             table.Columns.Add("ObjectRef");
             table.Columns.Add("Management Pack");
@@ -1099,6 +1145,26 @@ namespace MPViewer
                     row["Remotable"] = rule.Remotable;
                     row["Description"] = rule.Description;
 
+                    string monitorInternalName;
+                    string overridePro;
+                    string overrideProValue;
+                    string overrideFullString = "";
+
+                    monitorInternalName = Utilities.GetBestMPElementInternalName(rule);
+
+                    if (m_overridedt != null && m_overridedt.Rows.Count > 0)
+                    {
+                        DataRow[] filteredRows = m_overridedt.Select("WorkflowInternalName='" + monitorInternalName + "'");
+                        foreach (DataRow dataRow in filteredRows)
+                        {
+                            overridePro = dataRow["Property"].ToString();
+                            overrideProValue = dataRow["Value"].ToString();
+
+                            overrideFullString = overrideFullString + overridePro + "=" + overrideProValue + ";";
+                        }
+                    }
+
+                    row["Override"] = overrideFullString;
                     table.Rows.Add(row);
                 }
             }

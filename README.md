@@ -11,5 +11,9 @@ This repository contains my own fork of the original MPviewer source ever so gen
 ### *New Features*
 * Added the function to show overrides along with threshold in a single view
 
+<br>
+<img height="700" src="https://github.com/kevinye1980/mpviewer2/blob/master/Images/OverrideScreenshot.PNG" />
+<br>
+
 ## Past Releases
 1.1 * Added the possiblity to show threshold settings of unit monitors and rules

@@ -12,7 +12,7 @@ This repository contains my own fork of the original MPviewer source ever so gen
 * Added the function to show overrides along with threshold in a single view
 
 <br>
-<img height="700" src="https://github.com/kevinye1980/mpviewer2/blob/master/Images/OverrideScreenshot.PNG" />
+<img height="500" src="https://github.com/kevinye1980/mpviewer2/blob/master/Images/OverrideScreenshot.PNG" />
 <br>
 
 ## Past Releases
